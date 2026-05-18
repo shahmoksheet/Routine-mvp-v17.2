@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false; 
+    }
+
+    // Helpers
+    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function stringCheck(val, max) { return val is string && val.size() <= max; }
+
+    // Validation
+    function isValidWorkspace(data) {
+      return data.keys().hasAll(['name', 'ownerId', 'createdAt']) &&
+        stringCheck(data.name, 100) &&
+        stringCheck(data.ownerId, 128) &&
+        data.createdAt == request.time;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'createdAt']) &&
+        stringCheck(data.name, 100) &&
+        stringCheck(data.email, 120) &&
+        data.createdAt == request.time;
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if isSignedIn() && existing().workspaceId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.workspaceId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().keys().size() <= 6;
+      allow update: if isSignedIn() && request.auth.uid == userId && 
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'workspaceId']) &&
+        stringCheck(incoming().name, 100);
+      allow delete: if false;
+    }
+
+    match /workspaces/{workspaceId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(workspaceId) &&
+        incoming().ownerId == request.auth.uid &&
+        isValidWorkspace(incoming()) &&
+        incoming().keys().size() <= 6;
+      allow update: if isSignedIn() && isWorkspaceOwner(workspaceId) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'subscriptionPlan', 'subscriptionStatus']) &&
+        incoming().ownerId == existing().ownerId;
+      allow delete: if false;
+
+      match /departments/{departmentId} {
+          allow read: if isSignedIn() && (isWorkspaceOwner(workspaceId) || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.workspaceId == workspaceId);
+          allow create, update, delete: if false; // TBD for strict logic
+      }
+      match /roles/{roleId} {
+          allow read: if isSignedIn() && (isWorkspaceOwner(workspaceId) || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.workspaceId == workspaceId);
+          allow create, update, delete: if false;
+      }
+      match /projects/{projectId} {
+          allow read: if isSignedIn() && (isWorkspaceOwner(workspaceId) || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.workspaceId == workspaceId);
+          allow create, update, delete: if false;
+      }
+      match /tasks/{taskId} {
+          allow read: if isSignedIn() && (isWorkspaceOwner(workspaceId) || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.workspaceId == workspaceId);
+          allow create, update, delete: if false;
+      }
+    }
+  }
+}

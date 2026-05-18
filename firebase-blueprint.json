@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "Workspace": {
+      "title": "Workspace",
+      "description": "A workspace for a business or team",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "subscriptionPlan": { "type": "string" },
+        "subscriptionStatus": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "ownerId", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile document",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "createdAt"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "Department under a workspace",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "managerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "createdAt"]
+    },
+    "Role": {
+      "title": "Role",
+      "description": "Custom role under a workspace",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "permissions": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Project under a workspace",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "departmentId": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Task under a workspace",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/Workspace" },
+      "description": "Workspaces"
+    },
+    "/workspaces/{workspaceId}/departments/{departmentId}": {
+      "schema": { "$ref": "#/entities/Department" },
+      "description": "Departments"
+    },
+    "/workspaces/{workspaceId}/roles/{roleId}": {
+      "schema": { "$ref": "#/entities/Role" },
+      "description": "Roles"
+    },
+    "/workspaces/{workspaceId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Projects"
+    },
+    "/workspaces/{workspaceId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Tasks"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Users"
+    }
+  }
+}
